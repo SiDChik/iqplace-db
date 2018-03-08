@@ -1,5 +1,5 @@
-from iqplace.db import Field
-from iqplace.db import DBModel
+from iqplace.db.field import Field
+from iqplace.db.model import DBModel
 
 
 class User(DBModel):
