@@ -1,5 +1,7 @@
 aiofiles==0.3.2
 httptools==0.0.10
+Jinja2==2.10
+MarkupSafe==1.0
 pymongo==3.6.1
 python-rapidjson==0.4.3
 sanic==0.7.0
