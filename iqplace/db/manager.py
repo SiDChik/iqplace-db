@@ -20,7 +20,7 @@ class DBManager():
         dicts = self.paginate(cursor, page, per_page, sort_key).to_list(None)
         out = []
         for data in dicts:
-            out.append(self.model(data=data))
+            out.append(self.model(**data))
         return out
 
     def paginate(self, cursor, page=None, per_page=None, sort_key=None):
@@ -72,7 +72,7 @@ class DBManager():
         res = [self.model(obj) for obj in await res.to_list(None)]
         return res
 
-    async def create(self, data):
+    async def create(self, **data):
         insert_result = await self.collection.insert_one(data)
         obj = await self.collection.find_one({'_id': insert_result.inserted_id})
         return self.model(data=obj)

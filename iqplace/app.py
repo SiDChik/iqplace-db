@@ -20,9 +20,12 @@ class IQPlaceApp:
         self.app = app
 
         # Load Settings
-        settings_module = 'settings.testing' if isTest else os.getenv('SETTINGS_MODULE', 'settings.default')
+        settings_module = 'settings.testing' if isTest else os.getenv('SETTINGS_MODULE', 'settings.develop')
         self.config = config = app.config
-        app.config.from_pyfile('%s.py' % settings_module.replace('.', '/'))
+        config_path = '%s.py' % settings_module.replace('.', '/')
+        if isTest:
+            config_path = '../../%s' % config_path
+        app.config.from_pyfile(config_path)
 
         self.mongo = app.mongo = AsyncIOMotorClient(config.MONGO_URI)
         self.db_name = config.MONGO_DBNAME
