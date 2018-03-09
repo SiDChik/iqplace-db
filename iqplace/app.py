@@ -1,4 +1,6 @@
 import os
+
+from motor.motor_asyncio import AsyncIOMotorClient
 from sanic import Sanic
 
 
@@ -22,5 +24,14 @@ class IQPlaceApp:
         self.config = config = app.config
         app.config.from_pyfile('%s.py' % settings_module.replace('.', '/'))
 
+        self.mongo = app.mongo = AsyncIOMotorClient(config.MONGO_URI)
+        self.db_name = config.MONGO_DBNAME
+        self.db = app.db = self.mongo[self.db_name]
+
     def run(self):
-        self.app.run(host=self.config.HTTP_HOST, port=self.config.HTTP_PORT, debug=self.config.DEBUG)
+        self.app.run(host=self.config.HTTP_HOST, port=self.config.HTTP_PORT, debug=self.config.DEBUG,
+                     workers=self.config.HTTP_WORKERS)
+
+    @property
+    def test(self):
+        return '1'
