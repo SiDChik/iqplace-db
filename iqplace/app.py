@@ -3,17 +3,15 @@ import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from sanic import Sanic
 
+from iqplace.helpers import Singleton
 
-class IQPlaceApp:
+
+class IQPlaceApp(metaclass=Singleton):
     __app_instance = None
 
     config = None
 
-    def __new__(cls, *args, **kwargs):
-        if not cls.__app_instance:
-            cls.__app_instance = super().__new__(cls)
 
-        return cls.__app_instance
 
     def __init__(self, isTest=False):
         app = Sanic()

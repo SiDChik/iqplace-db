@@ -4,3 +4,6 @@ class FieldDoesntExist(Exception):
 
 class ValidationError(Exception):
     pass
+
+class ObjectDoesntExist(Exception):
+    pass

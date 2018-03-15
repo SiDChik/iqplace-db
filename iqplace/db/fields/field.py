@@ -7,10 +7,11 @@ class Field:
     value = None
     db_field = None
     attr_name = None
+    inited = False
 
     def __init__(self, required=False, db_field=None):
         self.required = required
-        self.db_field = None
+        self.db_field = db_field
         pass
 
     def get_serialize_value(self):

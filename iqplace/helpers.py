@@ -7,6 +7,15 @@ import rapidjson
 from bson import ObjectId, DBRef, RE_TYPE, Regex, text_type, SON, MinKey, MaxKey, Timestamp, Code, Binary
 
 
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
 def json_default(obj):
     if isinstance(obj, ObjectId):
         return str(obj)

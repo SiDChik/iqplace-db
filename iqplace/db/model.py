@@ -1,5 +1,7 @@
 import rapidjson
 
+from pip.utils import cached_property
+
 from iqplace.db.exceptions import FieldDoesntExist, ValidationError
 from iqplace.db.fields.field import Field
 from iqplace.db.fields.idfield import IDField
@@ -20,10 +22,9 @@ class DBModel(metaclass=ModelMeta):
     collection_name = None
     manager = None
     fields = None
-    collection = None
     __diff_keys = None
 
-    def __init__(self, **initial_data):
+    def __init__(self, from_db=False, **initial_data):
         self.__diff_keys = set()
         self.fields = {}
 
@@ -42,33 +43,47 @@ class DBModel(metaclass=ModelMeta):
                     attr.db_field = attr_name
 
                 self.fields[attr_name] = attr
-                initial_value = initial_data.pop(attr_name)
+
+                if from_db:
+                    initial_value = initial_data.pop(attr.db_field, None)
+                else:
+                    initial_value = initial_data.pop(attr_name, None)
+
                 attr.set_value(initial_value)
-            else:
+            elif attr_name in initial_data:
                 raise FieldDoesntExist
 
         if initial_data:
             raise ValidationError('%s unknown fields' % (', '.join(list(initial_data.keys()))))
 
     def __getattribute__(self, item):
-        if hasattr(self, item):
-            attr = super(DBModel, self).__getattribute__(item)
-            if isinstance(attr, Field):
-                return attr.value
-            return attr
-        raise AttributeError
+        attr = super(DBModel, self).__getattribute__(item)
+        if isinstance(attr, Field) and item in self.fields:
+            return attr.value
+        return attr
 
     def __setattr__(self, key, value):
         is_field = False
-        if hasattr(self, key):
-            attr = super(DBModel, self).__getattribute__(key)
-            if isinstance(attr, Field):
-                is_field = True
-                if value != attr.value:
-                    self.__diff_keys.add(key)
-                    attr.set_value(value)
+        attr = super(DBModel, self).__getattribute__(key)
+        if isinstance(attr, Field):
+            is_field = True
+            if value != attr.value:
+                self.__diff_keys.add(key)
+                attr.set_value(value)
+
         if not is_field:
             super(DBModel, self).__setattr__(key, value)
+
+    @cached_property
+    def collection(self):
+        return self.manager.collection
+
+    def from_db(self, **data):
+        out = {}
+        for field in self.fields.values():
+            value = data.get(field.attr_name, None)
+            out[field.attr_name] = value
+        return out
 
     def to_db(self, fields=None):
         out = {}
@@ -106,8 +121,10 @@ class DBModel(metaclass=ModelMeta):
 
     async def save(self):
         if not self.id:
-            inserted = await self.manager.create()
+            data = self.to_db()
+            del data['_id']
+            inserted = await self.manager.create(**data)
             self.id = inserted.id
         elif self.__diff_keys:
             await self.manager.update_by_id(self.id, self, self.to_db(self.__diff_keys))
-            self.__diff_keys = set()
+        self.__diff_keys = set()
