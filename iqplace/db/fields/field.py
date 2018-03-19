@@ -9,10 +9,15 @@ class Field:
     attr_name = None
     inited = False
 
+    def __new__(cls, *args, **kwargs):
+        instance = super(Field, cls).__new__(cls)
+        instance._args = args
+        instance._kwargs = kwargs
+        return instance
+
     def __init__(self, required=False, db_field=None):
         self.required = required
         self.db_field = db_field
-        pass
 
     def get_serialize_value(self):
         return self.value

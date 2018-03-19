@@ -12,12 +12,25 @@ class TestCase(unittest.TestCase):
     app = None
     loop = None
 
+    def setUp(self):
+        self.iqapp.queue.start_server(isTest=True)
+
+    def tearDown(self):
+        self.iqapp.queue.terminate()
+        db = self.iqapp.db
+
+        async def drop_collections():
+            for collection in await db.collection_names():
+                await db[collection].drop()
+
+        self.loop.run_until_complete(drop_collections())
+
     def __init__(self, methodName='runTest'):
-        self.iqapp = IQPlaceApp(isTest=True)
+        self.iqapp = IQPlaceApp(isTest=True, no_queue=True)
         self.app = self.iqapp.app
         self.loop = asyncio.get_event_loop()
         self._function_cache = {}
-        
+
         super(TestCase, self).__init__(methodName=methodName)
 
     def coroutine_function_decorator(self, func):

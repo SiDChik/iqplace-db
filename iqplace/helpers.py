@@ -5,6 +5,7 @@ import uuid
 
 import rapidjson
 from bson import ObjectId, DBRef, RE_TYPE, Regex, text_type, SON, MinKey, MaxKey, Timestamp, Code, Binary
+import _pickle as cPickle
 
 
 class Singleton(type):
@@ -61,3 +62,7 @@ def json_default(obj):
     if isinstance(obj, uuid.UUID):
         return {"$uuid": obj.hex}
     raise TypeError("%r is not JSON serializable" % obj)
+
+
+def deepcopy(obj):
+    return cPickle.loads(cPickle.dumps(obj, -1))

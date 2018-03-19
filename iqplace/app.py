@@ -3,6 +3,7 @@ import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from sanic import Sanic
 
+from iqplace.db.queue.server import QueueServer
 from iqplace.helpers import Singleton
 
 
@@ -11,9 +12,9 @@ class IQPlaceApp(metaclass=Singleton):
 
     config = None
 
+    queue = QueueServer()
 
-
-    def __init__(self, isTest=False):
+    def __init__(self, isTest=False, no_queue=False):
         app = Sanic()
         self.app = app
 
@@ -28,6 +29,9 @@ class IQPlaceApp(metaclass=Singleton):
         self.mongo = app.mongo = AsyncIOMotorClient(config.MONGO_URI)
         self.db_name = config.MONGO_DBNAME
         self.db = app.db = self.mongo[self.db_name]
+
+        if not no_queue:
+            self.queue.start_server(isTest=isTest)
 
     def run(self):
         self.app.run(host=self.config.HTTP_HOST, port=self.config.HTTP_PORT, debug=self.config.DEBUG,

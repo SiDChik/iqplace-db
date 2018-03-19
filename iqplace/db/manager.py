@@ -1,3 +1,6 @@
+import asyncio
+from functools import partial
+
 from bson import ObjectId
 from pip.utils import cached_property
 from pymongo import ASCENDING
@@ -60,23 +63,37 @@ class DBManager():
         if res:
             return self.model(res)
 
-    async def find(self, params=None, sort_params=None, limit=None, skip=None):
-        params = params or {}
+    async def find(self, query=None, sort_params=None, per_page=None, page=None):
+        query = query or {}
 
-        res = self.collection.find(params)
+        res = self.collection.find(query)
         if sort_params:
-            res = res.sort(sort_params)
+            res = res.sort(*sort_params)
 
-        if skip:
-            res = res.skip(skip)
+        if per_page:
+            per_page = max(1, per_page)
+            page = page or 0
+            res = res.skip(per_page * page)
+            res = res.limit(per_page)
 
-        if limit:
-            res = res.limit(limit)
-
-        res = [self.model(from_db=True, **obj) for obj in await res.to_list(None)]
+        res = await res.to_list(None)
+        res = [self.model(from_db=True, **obj) for obj in res]
         return res
 
     async def create(self, **data):
         insert_result = await self.collection.insert_one(data)
         obj = await self.collection.find_one({'_id': insert_result.inserted_id})
         return self.model(from_db=True, **obj)
+
+    @property
+    def queue(self):
+        return IQPlaceApp().queue
+
+    async def to_queue(self, message):
+        await asyncio.sleep(1)
+        reader, writer = await asyncio.open_unix_connection(path='/tmp/queue.sock')
+
+        writer.write(message.encode())
+
+        raw_resp = await reader.readline()
+        print(raw_resp)

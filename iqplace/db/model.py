@@ -6,7 +6,7 @@ from iqplace.db.exceptions import FieldDoesntExist, ValidationError
 from iqplace.db.fields.field import Field
 from iqplace.db.fields.idfield import IDField
 from iqplace.db.manager import DBManager
-from iqplace.helpers import json_default
+from iqplace.helpers import json_default, deepcopy
 
 
 class ModelMeta(type):
@@ -18,9 +18,9 @@ class ModelMeta(type):
 
 
 class DBModel(metaclass=ModelMeta):
-    id = None
+    id = IDField(db_field='_id')
     collection_name = None
-    manager = None
+    manager = None  # type: DBManager
     fields = None
     __diff_keys = None
 
@@ -28,15 +28,14 @@ class DBModel(metaclass=ModelMeta):
         self.__diff_keys = set()
         self.fields = {}
 
-        # add _id Field
-        setattr(self, 'id', IDField(db_field='_id'))
-
+        cls = self.__class__
         # init fields
-        for attr_name in dir(self):
+        for attr_name in dir(cls):
             if attr_name.startswith('_'):
                 continue
-            attr = getattr(self, attr_name, None)
+            attr = getattr(cls, attr_name, None)
             if isinstance(attr, Field):
+                attr = attr.__class__(*attr._args, **attr._kwargs)
                 attr.attr_name = attr_name
 
                 if not attr.db_field:
@@ -59,13 +58,14 @@ class DBModel(metaclass=ModelMeta):
     def __getattribute__(self, item):
         attr = super(DBModel, self).__getattribute__(item)
         if isinstance(attr, Field) and item in self.fields:
-            return attr.value
+            return self.fields[item].value
         return attr
 
     def __setattr__(self, key, value):
         is_field = False
         attr = super(DBModel, self).__getattribute__(key)
         if isinstance(attr, Field):
+            attr = self.fields[key]
             is_field = True
             if value != attr.value:
                 self.__diff_keys.add(key)
@@ -88,7 +88,7 @@ class DBModel(metaclass=ModelMeta):
     def to_db(self, fields=None):
         out = {}
         for field in self.fields.values():
-            if fields and field not in fields:
+            if fields and field.attr_name not in fields:
                 continue
             out[field.db_field] = field.db_value
 
@@ -119,6 +119,14 @@ class DBModel(metaclass=ModelMeta):
     async def delete(self):
         await self.manager.delete(self.id)
 
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    async def update_db(self, **kwargs):
+        self.update(**kwargs)
+        await self.save()
+
     async def save(self):
         if not self.id:
             data = self.to_db()
@@ -126,5 +134,5 @@ class DBModel(metaclass=ModelMeta):
             inserted = await self.manager.create(**data)
             self.id = inserted.id
         elif self.__diff_keys:
-            await self.manager.update_by_id(self.id, self, self.to_db(self.__diff_keys))
+            await self.manager.update_by_id(self.id, self.to_db(self.__diff_keys))
         self.__diff_keys = set()
