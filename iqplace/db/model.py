@@ -1,7 +1,6 @@
 import rapidjson
 
-from pip.utils import cached_property
-
+from cached_property import cached_property
 from iqplace.db.exceptions import FieldDoesntExist, ValidationError
 from iqplace.db.fields.field import Field
 from iqplace.db.fields.idfield import IDField

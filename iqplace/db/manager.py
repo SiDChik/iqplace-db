@@ -2,11 +2,10 @@ import asyncio
 from functools import partial
 
 from bson import ObjectId
-from pip.utils import cached_property
 from pymongo import ASCENDING
 
 from iqplace.db.exceptions import ObjectDoesntExist
-
+from cached_property import cached_property
 
 class DBManager():
     model = None
