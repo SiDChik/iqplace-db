@@ -1,4 +1,5 @@
 import os
+from asyncio import get_event_loop
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from sanic import Sanic
@@ -30,8 +31,30 @@ class IQPlaceApp(metaclass=Singleton):
         self.db_name = config.MONGO_DBNAME
         self.db = app.db = self.mongo[self.db_name]
 
+        from iqplace.auth.urls import auth_blueprint
+        self.app.blueprint(auth_blueprint)
+
+        from iqplace.events.urls import events_blueprint
+        self.app.blueprint(events_blueprint)
+
+        app.static('/uploads', app.config['UPLOAD_DIR'])
+
         if not no_queue:
             self.queue.start_server(isTest=isTest)
+
+        pk = open(app.config['SERVER_KEY'], "r")
+        self.private_key = pk.read()
+        pk.close()
+
+        pk = open(app.config['PUBLIC_KEY'], "r")
+        self.public_key = pk.read()
+        pk.close()
+
+    def get_collection(self, collection_name):
+        collection = self.db[collection_name]
+        loop = get_event_loop()
+        self.mongo.io_loop = loop
+        return collection
 
     def run(self):
         self.app.run(host=self.config.HTTP_HOST, port=self.config.HTTP_PORT, debug=self.config.DEBUG,

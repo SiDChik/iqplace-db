@@ -8,3 +8,10 @@ MONGO_URI = 'mongodb://127.0.0.1:27017/'
 MONGO_DBNAME = 'iqplace'
 
 QUEUE_SOCKET = '/tmp/db_queue.sock'
+
+SERVER_KEY = './keys/id_rsa'
+PUBLIC_KEY = './keys/id_rsa.pub'
+
+UPLOAD_DIR = '../uploads'
+
+SMS_PILOT_TOKEN = 'MVSFF5H87354YAU16E6HJMX6GURJRBHC0L94P6G6WBD8N19OYD17N9ZS1RTK7BL7'

@@ -100,3 +100,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+keys/id_rsa
+keys/id_rsa.pub

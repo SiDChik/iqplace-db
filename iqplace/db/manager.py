@@ -5,7 +5,6 @@ from bson import ObjectId
 from pip.utils import cached_property
 from pymongo import ASCENDING
 
-from iqplace.app import IQPlaceApp
 from iqplace.db.exceptions import ObjectDoesntExist
 
 
@@ -17,7 +16,8 @@ class DBManager():
 
     @cached_property
     def collection(self):
-        return IQPlaceApp().db[self.model.collection_name]
+        from iqplace.app import IQPlaceApp
+        return IQPlaceApp().get_collection(self.model.collection_name)
 
     async def list(self, query=None, page=None, per_page=None, sort_key=None):
         if query is None:
@@ -37,8 +37,11 @@ class DBManager():
             cursor = cursor.skip(page * per_page).limit(per_page)
         return cursor
 
-    async def delete(self, pk):
-        return await self.collection.remove({'_id': ObjectId(pk)})
+    async def delete_by_id(self, pk):
+        return await self.delete({'_id': ObjectId(pk)})
+
+    async def delete(self, criteria):
+        return await self.collection.remove(criteria)
 
     async def get_by_id(self, pk, ):
         query = {'_id': ObjectId(pk)}
@@ -87,6 +90,7 @@ class DBManager():
 
     @property
     def queue(self):
+        from iqplace.app import IQPlaceApp
         return IQPlaceApp().queue
 
     async def to_queue(self, message):

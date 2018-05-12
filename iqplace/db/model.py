@@ -52,7 +52,7 @@ class DBModel(metaclass=ModelMeta):
             elif attr_name in initial_data:
                 raise FieldDoesntExist
 
-        if initial_data:
+        if initial_data and not from_db:
             raise ValidationError('%s unknown fields' % (', '.join(list(initial_data.keys()))))
 
     def __getattribute__(self, item):

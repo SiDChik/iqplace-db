@@ -66,3 +66,27 @@ def json_default(obj):
 
 def deepcopy(obj):
     return cPickle.loads(cPickle.dumps(obj, -1))
+
+
+def detect_login_field(login):
+    if '@' in login:
+        return 'email'
+
+    if login.startswith('+'):
+        return 'phone'
+
+    if login[0].isdigit():
+        return 'phone'
+
+    return 'login'
+
+
+def normalized_phone(phone):
+    phone = re.sub("\D", "", phone)
+    if len(phone) == 10 and phone.startswith('9'):
+        phone = '+7%s' % phone
+    elif len(phone) == 11 and phone.startswith('8'):
+        phone = '+7%s' % phone[1:]
+    else:
+        phone = '+%s' % phone
+    return phone
