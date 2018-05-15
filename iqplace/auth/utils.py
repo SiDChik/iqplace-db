@@ -16,3 +16,10 @@ async def login_user(user, deviceID=None):
     encoded = jwt.encode(token_payload, app.private_key, algorithm='RS256')
 
     return encoded.decode()
+
+
+def decode_token(token):
+    app = IQPlaceApp()
+    decoded = jwt.decode(token, app.public_key)
+
+    return decoded

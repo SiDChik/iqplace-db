@@ -1,4 +1,7 @@
+import base64
 import hashlib
+import os
+import rapidjson
 import uuid
 from random import randint
 
@@ -6,9 +9,11 @@ import facebook
 import vk
 from aiohttp import ClientSession
 from aiovk import TokenSession, API
-from sanic.response import json
+from bson import ObjectId
+from sanic.response import json, HTTPResponse
 
-from iqplace.auth.utils import login_user
+from iqplace.app import IQPlaceApp
+from iqplace.auth.utils import login_user, decode_token
 from iqplace.helpers import detect_login_field, normalized_phone
 from iqplace.models.smscodes import SMSCodes
 from iqplace.models.user import User
@@ -195,7 +200,8 @@ async def login_social(request):
         user = await User.manager.find(criteria)
 
         if not len(user):
-            user = User(vk=info['id'], firstName=info.get('first_name'), lastName=info.get('last_name'), groups=['user'])
+            user = User(vk=info['id'], firstName=info.get('first_name'), lastName=info.get('last_name'),
+                        groups=['user'])
             await user.save()
         else:
             user = user[0]
@@ -211,3 +217,46 @@ async def login_social(request):
     return json({
         'erorr': 'true'
     }, 400)
+
+
+async def me(request):
+    token = request.headers.get('authorization')
+    deviceID = request.headers.get('deviceid')
+
+    token_info = decode_token(token)
+
+    if deviceID != token_info.get('deviceID'):
+        return json({
+            'ok': False
+        }, status=403)
+
+    user = await User.manager.find_one({'_id': ObjectId(token_info['user_id'])})
+    if not user:
+        return json({
+            'ok': False
+        }, 404)
+
+    if request.method == 'PATCH':
+        avatar = request.json.pop('avatar', None)
+        if avatar:
+            config = IQPlaceApp().config
+
+            content = base64.b64decode(avatar)
+            uid = uuid.uuid4().hex
+            url = 'users/%s.jpg' % (user.id)
+            path = '%s/%s' % (config.UPLOAD_DIR, url)
+
+            directory = os.path.dirname(path)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+
+            f = open(path, 'wb')
+            f.write(content)
+            f.close()
+
+            user.avatar = url
+
+        user.update(**request.json)
+        await user.save()
+
+    return HTTPResponse(user.public_json(), content_type="application/json")

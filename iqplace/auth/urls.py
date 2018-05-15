@@ -9,5 +9,6 @@ auth_blueprint.add_route(views.check_registration, '/check_registration', method
 auth_blueprint.add_route(views.registration, '/registration', methods=['POST'])
 auth_blueprint.add_route(views.login_sms, '/login_sms', methods=['POST'])
 auth_blueprint.add_route(views.login_social, '/login_social', methods=['POST'])
+auth_blueprint.add_route(views.me, '/me', methods=['GET', 'PATCH'])
 
 

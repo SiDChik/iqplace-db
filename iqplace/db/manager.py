@@ -63,7 +63,7 @@ class DBManager():
     async def find_one(self, params):
         res = await self.collection.find_one(params)
         if res:
-            return self.model(res)
+            return self.model(from_db=True, **res)
 
     async def find(self, query=None, sort_params=None, per_page=None, page=None):
         query = query or {}
